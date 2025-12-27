@@ -1,297 +1,330 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <iostream>
+#include <vector>
+#include <string>
+#include <iomanip>
+using namespace std;
 
-#define MAX_CLASSES 100
-#define MAX_STUDENTS 1000
-#define MAX_NAME 100
+const int MAX_NAME = 100;
 
+// ==================== LOP DOI TUONG ====================
 
-typedef struct {
-    char classId[20];
-    char className[MAX_NAME];
-    char major[MAX_NAME];
-    char type[20]; // CNTT/NGOAI NGU 
-} Classroom;
+class Classroom {
+private:
+    string classId;
+    string className;
+    string major;
+    string type; // "CNTT" hoac "Ngoai ngu"
 
-typedef struct {
-    char studentId[20];
-    char name[MAX_NAME];
-    char birthDate[12]; // dd/mm/yyyy
-    char email[50];
-    char phone[15];
-} Student;
+public:
+    Classroom() {}
+    Classroom(string id, string name, string maj, string t)
+        : classId(id), className(name), major(maj), type(t) {}
 
+    // Getter
+    string getClassId() const { return classId; }
+    string getClassName() const { return className; }
+    string getMajor() const { return major; }
+    string getType() const { return type; }
 
-typedef struct {
-    void (*display)(void* self);
-    void (*add)(void* self);
-    void (*delete)(void* self);
-    void (*update)(void* self);
-} Manageable;
+    // Setter
+    void setClassName(string name) { className = name; }
+    void setMajor(string maj) { major = maj; }
+    void setType(string t) { type = t; }
 
-// ------------------- quan li lop hoc -------------------
+    void display() const {
+        cout << left
+             << setw(15) << classId
+             << setw(25) << className
+             << setw(20) << major
+             << setw(10) << type << endl;
+    }
 
-typedef struct {
-    Manageable base;            // ke thua
-    Classroom classes[MAX_CLASSES];
-    int classCount;
-} ClassManager;
-
-void class_display(void* self);
-void class_add(void* self);
-void class_delete(void* self);
-void class_update(void* self);
-
-ClassManager classManager = {
-    {class_display, class_add, class_delete, class_update},
-    {}, 0
+    void input() {
+        cout << "Nhap ma lop: ";
+        cin >> classId;
+        cin.ignore();
+        cout << "Nhap ten lop: ";
+        getline(cin, className);
+        cout << "Nhap chuyen nganh: ";
+        getline(cin, major);
+        cout << "Nhap loai lop (CNTT / Ngoai ngu): ";
+        cin >> type;
+    }
 };
 
-// ------------------- QUAN LI SINH VIÊN -------------------
+class Student {
+private:
+    string studentId;
+    string name;
+    string birthDate; // dd/mm/yyyy
+    string email;
+    string phone;
 
-typedef struct {
-    Manageable base;            // Ke thua
-    Student students[MAX_STUDENTS];
-    int studentCount;
-} StudentManager;
+public:
+    Student() {}
+    Student(string id, string n, string bd, string e, string p)
+        : studentId(id), name(n), birthDate(bd), email(e), phone(p) {}
 
-void student_display(void* self);
-void student_add(void* self);
-void student_delete(void* self);
-void student_update(void* self);
+    // Getter
+    string getStudentId() const { return studentId; }
+    string getName() const { return name; }
+    string getBirthDate() const { return birthDate; }
+    string getEmail() const { return email; }
+    string getPhone() const { return phone; }
 
-StudentManager studentManager = {
-    {student_display, student_add, student_delete, student_update},
-    {}, 0
+    // Setter
+    void setName(string n) { name = n; }
+    void setBirthDate(string bd) { birthDate = bd; }
+    void setEmail(string e) { email = e; }
+    void setPhone(string p) { phone = p; }
+
+    void display() const {
+        cout << left
+             << setw(15) << studentId
+             << setw(25) << name
+             << setw(12) << birthDate
+             << setw(25) << email
+             << setw(15) << phone << endl;
+    }
+
+    void input() {
+        cout << "Nhap ma sinh vien: ";
+        cin >> studentId;
+        cin.ignore();
+        cout << "Nhap ho ten: ";
+        getline(cin, name);
+        cout << "Nhap ngay sinh (dd/mm/yyyy): ";
+        cin >> birthDate;
+        cout << "Nhap email: ";
+        cin >> email;
+        cout << "Nhap so dien thoai: ";
+        cin >> phone;
+    }
 };
 
-// ------------------- trien khai -------------------
+// ==================== L?P CHA TR?U TÃ?NG ====================
 
-void class_display(void* self) {
-    ClassManager* cm = (ClassManager*)self;
-    printf("\n=== DANH SACH LOP HOC (%d) ===\n", cm->classCount);
-    printf("%-15s %-25s %-20s %-10s\n", "Ma lop", "Ten lop", "Chuyên ngành", "Loai");
-    for (int i = 0; i < cm->classCount; i++) {
-        printf("%-15s %-25s %-20s %-10s\n",
-               cm->classes[i].classId,
-               cm->classes[i].className,
-               cm->classes[i].major,
-               cm->classes[i].type);
+class Manageable {
+public:
+    virtual void display() const = 0;
+    virtual void add() = 0;
+    virtual void remove() = 0;  // XÃ³a
+    virtual void update() = 0;
+    virtual ~Manageable() {} // Virtual destructor
+};
+
+class ClassManager : public Manageable {
+private:
+    vector<Classroom> classes;
+
+    int findIndex(string id) const {
+        for (int i = 0; i < classes.size(); i++) {
+            if (classes[i].getClassId() == id) return i;
+        }
+        return -1;
     }
-}
 
-void class_add(void* self) {
-    ClassManager* cm = (ClassManager*)self;
-    if (cm->classCount >= MAX_CLASSES) {
-        printf("Danh sach lop!\n");
-        return;
-    }
-    Classroom c;
-    printf("Nhap ma lop: ");
-    scanf("%s", c.classId);
-    printf("Nhap ten lop: ");
-    getchar(); // clear buffer
-    fgets(c.className, MAX_NAME, stdin);
-    c.className[strcspn(c.className, "\n")] = 0;
-    printf("Nhap chuyen nganh: ");
-    fgets(c.major, MAX_NAME, stdin);
-    c.major[strcspn(c.major, "\n")] = 0;
-    printf("Nhap loai lop (CNTT / Ngoai ngu): ");
-    scanf("%s", c.type);
-
-    cm->classes[cm->classCount++] = c;
-    printf("Them lop thanh cong!\n");
-}
-
-void class_delete(void* self) {
-    ClassManager* cm = (ClassManager*)self;
-    char id[20];
-    printf("Nhap ma lop can xoa: ");
-    scanf("%s", id);
-    for (int i = 0; i < cm->classCount; i++) {
-        if (strcmp(cm->classes[i].classId, id) == 0) {
-            for (int j = i; j < cm->classCount - 1; j++) {
-                cm->classes[j] = cm->classes[j + 1];
-            }
-            cm->classCount--;
-            printf("Xoa lop thanh cong!\n");
-            return;
+public:
+    void display() const override {
+        cout << "\n=== DANH SACH LOP HOC (" << classes.size() << ") ===\n";
+        cout << left
+             << setw(15) << "Ma lop"
+             << setw(25) << "Ten lop"
+             << setw(20) << "Chuyen nganh"
+             << setw(10) << "Loai" << endl;
+        for (const auto& c : classes) {
+            c.display();
         }
     }
-    printf("Khong tim thay lop co ma %s\n", id);
-}
 
-void class_update(void* self) {
-    ClassManager* cm = (ClassManager*)self;
-    char id[20];
-    printf("Nhap ma lop can cap nhat: ");
-    scanf("%s", id);
-    for (int i = 0; i < cm->classCount; i++) {
-        if (strcmp(cm->classes[i].classId, id) == 0) {
-            printf("Nhap ten lop moi: ");
-            getchar();
-            fgets(cm->classes[i].className, MAX_NAME, stdin);
-            cm->classes[i].className[strcspn(cm->classes[i].className, "\n")] = 0;
-            printf("Nhap chuyen nganh moi: ");
-            fgets(cm->classes[i].major, MAX_NAME, stdin);
-            cm->classes[i].major[strcspn(cm->classes[i].major, "\n")] = 0;
-            printf("Nhap loai lop moi (CNTT / Ngo?i ng?): ");
-            scanf("%s", cm->classes[i].type);
-            printf("Cap nhat thanh cong!\n");
-            return;
+    void add() override {
+        Classroom c;
+        c.input();
+        classes.push_back(c);
+        cout << "Them lop thanh cong!\n";
+    }
+
+    void remove() override {
+        string id;
+        cout << "Nhap ma lop can xoa: ";
+        cin >> id;
+        int index = findIndex(id);
+        if (index != -1) {
+            classes.erase(classes.begin() + index);
+            cout << "Xoa lop thanh cong!\n";
+        } else {
+            cout << "Khong tim thay lop co ma " << id << endl;
         }
     }
-    printf("Khong tim thay lop!\n");
-}
 
-// ------------------- TRI?N KHAI CH?C NÃNG SINH VIÊN -------------------
+    void update() override {
+        string id;
+        cout << "Nhap ma sinh vien can cap nhat: ";
+        cin >> id;
+        int index = findIndex(id);
+        if (index != -1) {
+            cin.ignore();
+            string newName, newMajor, newType;
+            cout << "Nhap ten lop moi: ";
+            getline(cin, newName);
+            cout << "Nhap chuyen nganh moi: ";
+            getline(cin, newMajor);
+            cout << "Nhap loai lop moi (CNTT / Ngoai ngu): ";
+            cin >> newType;
 
-void student_display(void* self) {
-    StudentManager* sm = (StudentManager*)self;
-    printf("\n=== DANH SACH SINH VIEN (%d) ===\n", sm->studentCount);
-    printf("%-15s %-25s %-12s %-25s %-15s\n", "MSSV", "Ho ten", "Ngay sinh", "Email", "SÐT");
-    for (int i = 0; i < sm->studentCount; i++) {
-        printf("%-15s %-25s %-12s %-25s %-15s\n",
-               sm->students[i].studentId,
-               sm->students[i].name,
-               sm->students[i].birthDate,
-               sm->students[i].email,
-               sm->students[i].phone);
-    }
-}
-
-void student_add(void* self) {
-    StudentManager* sm = (StudentManager*)self;
-    if (sm->studentCount >= MAX_STUDENTS) {
-        printf("Danh sach sinh vien !\n");
-        return;
-    }
-    Student s;
-    printf("Nhap ma sinh vien: ");
-    scanf("%s", s.studentId);
-    printf("Nhap ho ten: ");
-    getchar();
-    fgets(s.name, MAX_NAME, stdin);
-    s.name[strcspn(s.name, "\n")] = 0;
-    printf("Nhap ngay sinh (dd/mm/yyyy): ");
-    scanf("%s", s.birthDate);
-    printf("Nhap email: ");
-    scanf("%s", s.email);
-    printf("Nhap so dien thoai: ");
-    scanf("%s", s.phone);
-
-    sm->students[sm->studentCount++] = s;
-    printf("Them sinh vien thanh cong!\n");
-}
-
-void student_delete(void* self) {
-    StudentManager* sm = (StudentManager*)self;
-    char id[20];
-    printf("Nhap ma sinh vien can xoa: ");
-    scanf("%s", id);
-    for (int i = 0; i < sm->studentCount; i++) {
-        if (strcmp(sm->students[i].studentId, id) == 0) {
-            for (int j = i; j < sm->studentCount - 1; j++) {
-                sm->students[j] = sm->students[j + 1];
-            }
-            sm->studentCount--;
-            printf("Xoa sinh vien thanh cong!\n");
-            return;
+            classes[index].setClassName(newName);
+            classes[index].setMajor(newMajor);
+            classes[index].setType(newType);
+            cout << "Cap nhat thanh cong!\n";
+        } else {
+            cout << "Khong tim thay lop!\n";
         }
     }
-    printf("Khong tim thay sinh vien co ma %s\n", id);
-}
+};
 
-void student_update(void* self) {
-    StudentManager* sm = (StudentManager*)self;
-    char id[20];
-    printf("Nhap ma sinh vien can cap nhat: ");
-    scanf("%s", id);
-    for (int i = 0; i < sm->studentCount; i++) {
-        if (strcmp(sm->students[i].studentId, id) == 0) {
-            printf("Nhap ho ten moi: ");
-            getchar();
-            fgets(sm->students[i].name, MAX_NAME, stdin);
-            sm->students[i].name[strcspn(sm->students[i].name, "\n")] = 0;
-            printf("Nhap ngay sinh moi: ");
-            scanf("%s", sm->students[i].birthDate);
-            printf("Nhap email moi: ");
-            scanf("%s", sm->students[i].email);
-            printf("Nhap SDT moi: ");
-            scanf("%s", sm->students[i].phone);
-            printf("Cap nhat thanh cong!\n");
-            return;
+// ==================== QU?N L? SINH VIÃŠN ====================
+
+class StudentManager : public Manageable {
+private:
+    vector<Student> students;
+
+    int findIndex(string id) const {
+        for (int i = 0; i < students.size(); i++) {
+            if (students[i].getStudentId() == id) return i;
+        }
+        return -1;
+    }
+
+public:
+    void display() const override {
+        cout << "\n=== DANH SACH SINH VIEN (" << students.size() << ") ===\n";
+        cout << left
+             << setw(15) << "MSSV"
+             << setw(25) << "Ho ten"
+             << setw(12) << "Ngay sinh"
+             << setw(25) << "Email"
+             << setw(15) << "SÃT" << endl;
+        for (const auto& s : students) {
+            s.display();
         }
     }
-    printf("Khong tim thay sinh vien!\n");
-}
 
-// ------------------- MENU -------------------
+    void add() override {
+        Student s;
+        s.input();
+        students.push_back(s);
+        cout << "Them sinh vien thanh cong!\n";
+    }
 
-void menuClass(ClassManager* cm) {
+    void remove() override {
+        string id;
+        cout << "Nhap ma sinh vien can co: ";
+        cin >> id;
+        int index = findIndex(id);
+        if (index != -1) {
+            students.erase(students.begin() + index);
+            cout << "Xoa sinh vien thanh cong!\n";
+        } else {
+            cout << "Khong tim thay sinh vien co ma " << id << endl;
+        }
+    }
+
+    void update() override {
+        string id;
+        cout << "Nhap ma sinh vien can cap nhat: ";
+        cin >> id;
+        int index = findIndex(id);
+        if (index != -1) {
+            cin.ignore();
+            string newName, newBirth, newEmail, newPhone;
+            cout << "Nhap ten moi: ";
+            getline(cin, newName);
+            cout << "Nhap ngay sinh moi (dd/mm/yyyy): ";
+            cin >> newBirth;
+            cout << "Nhap email moi: ";
+            cin >> newEmail;
+            cout << "Nhap SÃT moi: ";
+            cin >> newPhone;
+
+            students[index].setName(newName);
+            students[index].setBirthDate(newBirth);
+            students[index].setEmail(newEmail);
+            students[index].setPhone(newPhone);
+            cout << "Cap nhat thannh cong!\n";
+        } else {
+            cout << "Khong tim thay sinh vien!\n";
+        }
+    }
+};
+
+// ==================== MENU ====================
+
+void menuClass(Manageable* manager) {
     int choice;
     do {
-        printf("\n----- QUAN LY LOP HOC -----\n");
-        printf("1. Hien thi danh sach\n");
-        printf("2. Them moi\n");
-        printf("3. Xoa\n");
-        printf("4. Cap nhat\n");
-        printf("0. Quay lai\n");
-        printf("Chon: ");
-        scanf("%d", &choice);
+        cout << "\n----- QUAN LY LOP HOC -----\n";
+        cout << "1. Hien thi danh sach\n";
+        cout << "2. Them moi\n";
+        cout << "3. Xoa\n";
+        cout << "4. Cap nhat\n";
+        cout << "0. Quay lai\n";
+        cout << "Chon: ";
+        cin >> choice;
+
         switch (choice) {
-            case 1: cm->base.display(cm); break;
-            case 2: cm->base.add(cm); break;
-            case 3: cm->base.delete(cm); break;
-            case 4: cm->base.update(cm); break;
+            case 1: manager->display(); break;
+            case 2: manager->add(); break;
+            case 3: manager->remove(); break;
+            case 4: manager->update(); break;
             case 0: break;
-            default: printf("Lua chon khong hop le!\n");
+            default: cout << "Lua chon khong hop le!\n";
         }
     } while (choice != 0);
 }
 
-void menuStudent(StudentManager* sm) {
+void menuStudent(Manageable* manager) {
     int choice;
     do {
-        printf("\n----- QUAN LY SINH VIEN-----\n");
-        printf("1. Hien thi danh sach\n");
-        printf("2. Them moi\n");
-        printf("3. Xoa\n");
-        printf("4. Cap nhat\n");
-        printf("0. Quay lai\n");
-        printf("Chon: ");
-        scanf("%d", &choice);
+        cout << "\n----- QUAN LI SINH VIEN -----\n";
+        cout << "1. Hien thi danh sach\n";
+        cout << "2. Them moi\n";
+        cout << "3. Xoa\n";
+        cout << "4. Cap nhat\n";
+        cout << "0. Quay lai\n";
+        cout << "Chon: ";
+        cin >> choice;
+
         switch (choice) {
-            case 1: sm->base.display(sm); break;
-            case 2: sm->base.add(sm); break;
-            case 3: sm->base.delete(sm); break;
-            case 4: sm->base.update(sm); break;
+            case 1: manager->display(); break;
+            case 2: manager->add(); break;
+            case 3: manager->remove(); break;
+            case 4: manager->update(); break;
             case 0: break;
-            default: printf("Lua chon khong hopw le!\n");
+            default: cout << "Lua chon khong hop le?!\n";
         }
     } while (choice != 0);
 }
 
 int main() {
+    ClassManager classMgr;
+    StudentManager studentMgr;
+
     int choice;
     do {
-        printf("\n===== HE THONG QUAN LY SINH VIEN - RIKKEI EDU =====\n");
-        printf("1. Quan ly lop hoc\n");
-        printf("2. Quan ly sinh vien\n");
-        printf("0. Thoat\n");
-        printf("Chon chuc nang: ");
-        scanf("%d", &choice);
+        cout << "\n===== HE THONG QUAN LY SINH VIEN - RIKKEI EDU =====\n";
+        cout << "1. Quan li lop hoc\n";
+        cout << "2. Quan li sinh vien\n";
+        cout << "0. Thoat\n";
+        cout << "Chon chuc nang: ";
+        cin >> choice;
 
         switch (choice) {
-            case 1: menuClass(&classManager); break;
-            case 2: menuStudent(&studentManager); break;
-            case 0: printf("Tam biet!\n"); break;
-            default: printf("Lua chon khong hop le!\n");
+            case 1: menuClass(&classMgr); break;
+            case 2: menuStudent(&studentMgr); break;
+            case 0: cout << "Tam biet!\n"; break;
+            default: cout << "Lua chon khong hop le!\n";
         }
     } while (choice != 0);
 
     return 0;
 }
-
-
